@@ -1,0 +1,6 @@
+*.obj
+*.o
+*.gb
+*.gbc
+**/data/*.bin
+**/data/*.pal
