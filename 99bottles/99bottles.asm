@@ -2,7 +2,7 @@ SECTION "Beginning", ROM0
 
 INCLUDE "../common/gameboy.inc"
 
-FRAMES_TO_SKIP	EQU $40
+FRAMES_TO_SKIP	EQU $10
 
 SECTION "High Ram", HRAM
 		RSSET $FF80
@@ -92,8 +92,24 @@ Song:		halt
 .doSong:	pop af
 		ld a, FRAMES_TO_SKIP
 		ldh [skipByte], a
+
+		ldh a, [LCD_SCROLL_Y]
+		inc a
+		ldh [LCD_SCROLL_Y], a
+		ldh a, [scrollStep]
+		dec a
+		cp 0
+		jr z, .lyrics
+		ldh [scrollStep], a
+		jp Song
+
+.lyrics:	ld a, 8
+		ldh [scrollStep], a
+
 		ld hl, controlByte
 		ld e, [hl]
+		ld a, e
+		cp 0
 		jr nz, .skipFirst
 		call FirstLine
 .skipFirst:	dec e
@@ -165,7 +181,6 @@ NewLine:
 		jr nz, .noResetB
 		ld b, 0
 .noResetB:	call ClearLine
-		call Reposition
 		ret
 
 PrintBeers:
@@ -242,12 +257,6 @@ TakeOneDown:
 		ld a, 100
 .noResetBeers:	dec a
 		ld [hl], a
-		ret
-
-Reposition:
-		ldh a, [LCD_SCROLL_Y]
-		add 8
-		ldh [LCD_SCROLL_Y], a
 		ret
 
 INCLUDE "../common/common-gameboy.inc"
