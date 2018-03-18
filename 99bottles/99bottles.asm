@@ -4,11 +4,12 @@ INCLUDE "../common/gameboy.inc"
 
 FRAMES_TO_SKIP	EQU $40
 
-WORK_RAM	EQU $C000
-BEERS		EQU $C000
-CONTROL_BYTE	EQU $C001
-SKIP_BYTE	EQU $C002
-POSITION	EQU $C003
+SECTION "High Ram", HRAM
+		RSSET $FF80
+beers		RB 1
+controlByte	RB 1
+skipByte	RB 1
+scrollStep	RB 1
 
 SECTION "VBlank Interrupt", ROM0[$40]
 		nop
@@ -35,7 +36,7 @@ main:
 		call SetupPalettesGBC
 		jr .eoPalette
 .monoPalette:	ld hl, MGB_PALETTE_DATA
-		ld [hl], %11100100
+		ld [hl], %00011011
 
 .eoPalette:	ld bc, $2000
 		ld de, VIDEO_RAM
@@ -49,27 +50,28 @@ main:
 		jr nz, .videoRamLoop
 
 		; Start LCD
-		ld hl, LCD_CONTROL
-		ld [hl], $91
+		ld a, $91
+		ldh [LCD_CONTROL], a
 
 		; Initialize RAM
-		ld hl, BEERS
-		ld [hl], 99
+		ld a, 99
+		ldh [beers], a
 
-		ld hl, CONTROL_BYTE
-		ld [hl], 0
+		ld a, FRAMES_TO_SKIP
+		ldh [skipByte], a
 
-		ld hl, SKIP_BYTE
-		ld [hl], FRAMES_TO_SKIP
+		ld a, 8
+		ldh [scrollStep], a
 
-		ld hl, POSITION
-		ld [hl], 112
-		ld hl, LCD_SCROLL_Y
-		ld [hl], 112
+		ld a, 112
+		ldh [LCD_SCROLL_Y], a
 
+		xor a
+		ldh [controlByte], a
+
+		inc a
 		; Enable the Song timer
-		ld hl, $ffff
-		ld [hl], 1
+		ld [$ffff], a
 		ei
 
 		call WaitVBI
@@ -79,7 +81,7 @@ main:
 
 Song:		halt
 		push af
-		ld hl, SKIP_BYTE
+		ld hl, skipByte
 		dec [hl]
 		ld a, [hl]
 		cp 0
@@ -88,9 +90,9 @@ Song:		halt
 		jp Song
 
 .doSong:	pop af
-		ld hl, SKIP_BYTE
-		ld [hl], FRAMES_TO_SKIP
-		ld hl, CONTROL_BYTE
+		ld a, FRAMES_TO_SKIP
+		ldh [skipByte], a
+		ld hl, controlByte
 		ld e, [hl]
 		jr nz, .skipFirst
 		call FirstLine
@@ -107,7 +109,7 @@ Song:		halt
 .skipFourth:	dec e
 		jr nz, .skipNewLine
 		call NewLine
-.skipNewLine:	ld hl, CONTROL_BYTE
+.skipNewLine:	ld hl, controlByte
 		ld a, [hl]
 		inc a
 		cp 5
@@ -167,8 +169,7 @@ NewLine:
 		ret
 
 PrintBeers:
-		ld hl, BEERS
-		ld a, [hl]
+		ldh a, [beers]
 		or $80
 		call PrintTile
 		ret
@@ -179,8 +180,7 @@ StartLine:
 		ld d, 3
 		call PrintTiles
 		ld d, a
-		ld hl, BEERS
-		ld a, [hl]
+		ldh a, [beers]
 		cp 1
 		jr nz, .beerPlural
 		ld a, d
@@ -216,8 +216,7 @@ SecondLine:
 		ret
 
 ThirdLine:
-		ld hl, BEERS
-		ld a, [hl]
+		ldh a, [beers]
 		cp 0
 		jr z, .beersZero
 		ld hl, msgTakeOneDown
@@ -236,7 +235,7 @@ FourthLine:
 		ret
 
 TakeOneDown:
-		ld hl, BEERS
+		ld hl, beers
 		ld a, [hl]
 		cp 0
 		jr nz, .noResetBeers
@@ -246,12 +245,9 @@ TakeOneDown:
 		ret
 
 Reposition:
-		ld hl, POSITION
-		ld a, [hl]
+		ldh a, [LCD_SCROLL_Y]
 		add 8
-		ld [hl], a
-		ld hl, LCD_SCROLL_Y
-		ld [hl], a
+		ldh [LCD_SCROLL_Y], a
 		ret
 
 INCLUDE "../common/common-gameboy.inc"
