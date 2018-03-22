@@ -2,8 +2,9 @@ SECTION "Beginning", ROM0
 
 INCLUDE "../common/gameboy.inc"
 
-WORK_RAM	EQU $C000
-MAZE_DATA	EQU $C000
+SECTION "Work RAM", WRAM0
+		RSSET $C000
+mazeData	RB 85*85
 
 SECTION "Boot", ROM0[$100]
 		nop
@@ -120,7 +121,7 @@ GenerateMaze:
 		ret
 
 .initializeRam:
-		ld hl, WORK_RAM
+		ld hl, mazeData
 		ld bc, 85 * 85
 
 .loop:		xor a
